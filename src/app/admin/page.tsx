@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { availableDates, dateString, formatDate, upcomingWeekStart, weekdays } from "@/lib/dates";
 import { scheduleFor } from "@/lib/schedules";
 import { addGolfer, login, logout, resendSelectedInvitations, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow } from "./actions";
+import { BookingManager } from "./booking-manager";
 import { GolferRow } from "./golfer-row";
 import styles from "./admin.module.css";
 
@@ -21,7 +22,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const [golferRows, defaultRows, weekSchedule, bookings] = await Promise.all([
     sql`SELECT id, first_name, last_name, email, active FROM golfers WHERE listed=TRUE ORDER BY active DESC, last_name, first_name`,
     sql`SELECT * FROM schedule_defaults WHERE id = 1`, scheduleFor(weekStart),
-    sql`SELECT g.first_name, g.last_name, b.play_date FROM invitations i JOIN golfers g ON g.id=i.golfer_id JOIN booking_dates b ON b.invitation_id=i.id WHERE i.week_start=${weekStart} ORDER BY g.last_name, g.first_name, b.play_date`,
+    sql`SELECT i.id AS invitation_id, g.id AS golfer_id, g.first_name, g.last_name, b.play_date FROM invitations i JOIN golfers g ON g.id=i.golfer_id JOIN booking_dates b ON b.invitation_id=i.id WHERE i.week_start=${weekStart} ORDER BY g.last_name, g.first_name, b.play_date`,
   ]);
   const golfers = golferRows as unknown as Array<{ id: string; first_name: string; last_name: string; email: string; active: boolean }>;
   const defaultRow = defaultRows[0] as Record<string, boolean>;
@@ -41,6 +42,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <article className={styles.card}><h2>Exception pour la prochaine semaine</h2><p>Du {formatDate(weekStart)}. Cette configuration remplace les jours par défaut pour cette semaine seulement.</p><form action={saveWeekSchedule}><input type="hidden" name="weekStart" value={weekStart} /><ScheduleFields schedule={weekSchedule} /><button>Enregistrer l&apos;exception</button></form></article>
     </section>
     <section className={styles.card}><details className={styles.golfersPanel} open><summary><span>Golfeurs ({golfers.length})</span><span className={styles.panelToggle}><span className={styles.closeLabel}>Fermer la section</span><span className={styles.openLabel}>Ouvrir la section</span></span></summary><p className={styles.statusHelp}><strong>Actif</strong> : reçoit les invitations et les rappels. <strong>Désactivé</strong> : reste dans l&apos;historique, mais ne reçoit plus de courriel. <strong>Supprimé</strong> : retiré de cette liste et des envois, mais conservé dans la base de données.</p><div className={styles.table}>{golfers.map((golfer) => <GolferRow key={golfer.id} golfer={golfer} />)}</div></details></section>
-    <section className={styles.card}><h2>Réservations de la prochaine semaine</h2><table className={styles.bookingTable}><thead><tr><th>Journée</th><th>Joueurs inscrits</th></tr></thead><tbody>{dates.map((date) => <tr key={date}><th scope="row">{formatDate(date)}<span>{totals[date]} inscrit{totals[date] === 1 ? "" : "s"}</span></th><td>{bookingsByDate[date].length ? <ul>{bookingsByDate[date].map((booking, index) => <li key={`${booking.first_name}-${booking.last_name}-${index}`}>{booking.first_name} {booking.last_name}</li>)}</ul> : <span className={styles.empty}>Aucun joueur inscrit.</span>}</td></tr>)}</tbody></table></section>
+    <BookingManager days={dates.map((date) => ({ date, label: formatDate(date), bookings: bookingsByDate[date].map((booking) => ({ invitation_id: booking.invitation_id, golfer_id: booking.golfer_id, first_name: booking.first_name, last_name: booking.last_name })) }))} players={golfers.filter((golfer) => golfer.active).map((golfer) => ({ id: golfer.id, first_name: golfer.first_name, last_name: golfer.last_name }))} />
   </main>;
 }

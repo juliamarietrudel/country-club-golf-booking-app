@@ -1,12 +1,14 @@
 "use server";
 
+import crypto from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminSession, destroyAdminSession, passwordIsValid, requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { scheduleFromForm } from "@/lib/schedules";
 import { sendWeeklyInvitations } from "@/lib/jobs";
-import { upcomingWeekStart } from "@/lib/dates";
+import { addDays, upcomingWeekStart, zonedTimeToUtc } from "@/lib/dates";
+import { bookingDatesFor } from "@/lib/jobs";
 
 export async function login(formData: FormData) {
   if (!passwordIsValid(String(formData.get("password") ?? ""))) redirect("/admin?error=1");
@@ -75,4 +77,23 @@ export async function resendSelectedInvitations(formData: FormData) {
   const count = await sendWeeklyInvitations(upcomingWeekStart(), golferIds, true);
   revalidatePath("/admin");
   redirect(`/admin?sent=${count}&resend=1`);
+}
+export async function removeBooking(invitationId: string, playDate: string) {
+  await requireAdmin();
+  await db()`DELETE FROM booking_dates WHERE invitation_id=${invitationId} AND play_date=${playDate}`;
+  revalidatePath("/admin");
+}
+export async function addBooking(golferId: string, playDate: string) {
+  await requireAdmin();
+  const weekStart = upcomingWeekStart();
+  const allowedDates = await bookingDatesFor(weekStart);
+  if (!allowedDates.includes(playDate)) throw new Error("La journée sélectionnée n'est pas disponible.");
+  const sql = db();
+  const golfers = await sql`SELECT id FROM golfers WHERE id=${golferId} AND active=TRUE AND listed=TRUE`;
+  if (!golfers.length) throw new Error("Ce golfeur n'est plus actif.");
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = zonedTimeToUtc(addDays(weekStart, -1), 12);
+  const invitations = await sql`INSERT INTO invitations (golfer_id, week_start, token, expires_at) VALUES (${golferId}, ${weekStart}, ${token}, ${expiresAt}) ON CONFLICT (golfer_id, week_start) DO UPDATE SET expires_at=EXCLUDED.expires_at RETURNING id`;
+  await sql`INSERT INTO booking_dates (invitation_id, play_date) VALUES (${invitations[0].id}, ${playDate}) ON CONFLICT DO NOTHING`;
+  revalidatePath("/admin");
 }
