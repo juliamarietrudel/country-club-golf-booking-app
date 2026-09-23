@@ -19,8 +19,8 @@ export async function addGolfer(formData: FormData) {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!firstName || !lastName || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Informations du golfeur invalides.");
-  await db()`INSERT INTO golfers (first_name, last_name, email) VALUES (${firstName}, ${lastName}, ${email})`;
+  if (!firstName || !lastName || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Les renseignements du golfeur sont invalides.");
+  await db()`INSERT INTO golfers (first_name, last_name, email) VALUES (${firstName}, ${lastName}, ${email}) ON CONFLICT (email) DO UPDATE SET first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, active=TRUE, listed=TRUE, updated_at=NOW()`;
   revalidatePath("/admin");
 }
 export async function toggleGolfer(formData: FormData) {
@@ -30,13 +30,19 @@ export async function toggleGolfer(formData: FormData) {
   await db()`UPDATE golfers SET active = ${active}, updated_at = NOW() WHERE id = ${id}`;
   revalidatePath("/admin");
 }
+export async function removeGolfer(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  await db()`UPDATE golfers SET active=FALSE, listed=FALSE, updated_at=NOW() WHERE id=${id}`;
+  revalidatePath("/admin");
+}
 export async function editGolfer(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!id || !firstName || !lastName || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Informations du golfeur invalides.");
+  if (!id || !firstName || !lastName || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Les renseignements du golfeur sont invalides.");
   await db()`UPDATE golfers SET first_name=${firstName}, last_name=${lastName}, email=${email}, updated_at=NOW() WHERE id=${id}`;
   revalidatePath("/admin");
 }
@@ -50,7 +56,7 @@ export async function saveDefaultSchedule(formData: FormData) {
 export async function saveWeekSchedule(formData: FormData) {
   await requireAdmin();
   const weekStart = String(formData.get("weekStart") ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new Error("Semaine invalide.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new Error("La semaine est invalide.");
   const schedule = scheduleFromForm(formData);
   const sql = db();
   await sql`INSERT INTO weekly_overrides (week_start, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (${weekStart}, ${schedule.lundi}, ${schedule.mardi}, ${schedule.mercredi}, ${schedule.jeudi}, ${schedule.vendredi}, ${schedule.samedi}, ${schedule.dimanche}) ON CONFLICT (week_start) DO UPDATE SET monday=EXCLUDED.monday, tuesday=EXCLUDED.tuesday, wednesday=EXCLUDED.wednesday, thursday=EXCLUDED.thursday, friday=EXCLUDED.friday, saturday=EXCLUDED.saturday, sunday=EXCLUDED.sunday, updated_at=NOW()`;
@@ -65,7 +71,7 @@ export async function sendInvitationsNow() {
 export async function resendSelectedInvitations(formData: FormData) {
   await requireAdmin();
   const golferIds = formData.getAll("golferIds").map(String).filter(Boolean);
-  if (!golferIds.length) throw new Error("Selectionnez au moins un golfeur.");
+  if (!golferIds.length) throw new Error("Sélectionnez au moins un golfeur.");
   const count = await sendWeeklyInvitations(upcomingWeekStart(), golferIds, true);
   revalidatePath("/admin");
   redirect(`/admin?sent=${count}&resend=1`);

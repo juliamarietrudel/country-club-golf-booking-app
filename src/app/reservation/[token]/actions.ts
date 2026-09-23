@@ -12,7 +12,7 @@ export async function saveBooking(formData: FormData) {
   const rows = await sql`SELECT id, week_start, expires_at FROM invitations WHERE token=${token}`;
   const invitation = rows[0];
   const weekStart = invitation && dateString(invitation.week_start);
-  if (!invitation || new Date(invitation.expires_at) < new Date() || !bookingIsOpen(weekStart)) throw new Error("Cette reservation est fermee.");
+  if (!invitation || new Date(invitation.expires_at) < new Date() || !bookingIsOpen(weekStart)) throw new Error("Cette réservation est fermée.");
   const allowed = await bookingDatesFor(weekStart);
   const selected = formData.getAll("dates").map(String).filter((date) => allowed.includes(date));
   await sql.begin(async (transaction) => {

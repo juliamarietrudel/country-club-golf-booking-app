@@ -1,6 +1,6 @@
-# Country Club de Montreal - Golf
+# Country Club de Montréal - Golf
 
-Application de reservation hebdomadaire pour les golfeurs du Country Club de Montreal.
+Application de réservation hebdomadaire pour les golfeurs du Country Club de Montréal.
 
 ## Fonctionnalites
 

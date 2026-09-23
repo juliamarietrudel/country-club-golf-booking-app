@@ -5,10 +5,10 @@ export default function Home() {
   return (
     <main className={styles.page}>
       <div className={styles.crest}>CCM</div>
-      <p className={styles.kicker}>Country Club de Montreal</p>
-      <h1>Les journees de golf, simplement.</h1>
-      <p className={styles.copy}>Vos invitations de jeu sont envoyees par courriel chaque vendredi. Utilisez votre lien personnel pour confirmer vos journees.</p>
-      <Link className={styles.adminLink} href="/admin">Acces administrateur</Link>
+      <p className={styles.kicker}>Country Club de Montréal</p>
+      <h1>Les journées de golf, simplement.</h1>
+      <p className={styles.copy}>Vos invitations de jeu sont envoyées par courriel chaque vendredi. Utilisez votre lien personnel pour confirmer vos journées.</p>
+      <Link className={styles.adminLink} href="/admin">Accès administrateur</Link>
     </main>
   );
 }
