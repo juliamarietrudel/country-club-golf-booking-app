@@ -16,4 +16,5 @@
 .table { display: grid; }.row { display: flex; justify-content: space-between; align-items: center; padding: .8rem 0; border-top: 1px solid #e9e9e5; gap: 1rem; }.row div { display: grid; gap: .2rem; }.row span { color: var(--muted); font-size: .88rem; }.textButton { color: var(--navy); background: transparent; padding: .2rem 0; text-decoration: underline; }
 .golferForm { display: grid; grid-template-columns: 1fr 1fr 1.5fr auto; gap: .5rem; flex: 1; }.golferForm input { min-width: 0; border: 1px solid #d4d8d7; padding: .55rem; }.golferForm button { white-space: nowrap; }
 .error { color: #a32323; margin: .5rem 0; }
+.success { background: #e3eee8; border-left: 3px solid #2f7354; color: #1e513a; margin: -.5rem 0 1.5rem; padding: .9rem 1rem; }
 @media (max-width: 760px) { .page { padding: 1.25rem; }.header, .overview, .send { flex-direction: column; align-items: flex-start; }.grid { grid-template-columns: 1fr; }.totals { gap: 1rem; }.row { align-items: flex-start; }.golferForm { grid-template-columns: 1fr; width: 100%; } }

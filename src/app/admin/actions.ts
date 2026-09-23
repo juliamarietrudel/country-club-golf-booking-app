@@ -58,6 +58,7 @@ export async function saveWeekSchedule(formData: FormData) {
 }
 export async function sendInvitationsNow() {
   await requireAdmin();
-  await sendWeeklyInvitations(upcomingWeekStart());
+  const count = await sendWeeklyInvitations(upcomingWeekStart());
   revalidatePath("/admin");
+  redirect(`/admin?sent=${count}`);
 }

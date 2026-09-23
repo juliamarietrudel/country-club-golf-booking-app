@@ -9,11 +9,12 @@ function ScheduleFields({ schedule }: { schedule: Record<string, boolean> }) {
   return <div className={styles.dayChoices}>{weekdays.map((day) => <label key={day}><input type="checkbox" name={day} defaultChecked={schedule[day]} />{day}</label>)}</div>;
 }
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
   if (!(await isAdmin())) {
     const error = (await searchParams).error;
     return <main className={styles.login}><p className={styles.eyebrow}>Country Club de Montreal</p><h1>Espace administrateur</h1><form action={login}><label>Mot de passe<input name="password" type="password" autoFocus required /></label>{error && <p className={styles.error}>Mot de passe incorrect.</p>}<button>Ouvrir la session</button></form></main>;
   }
+  const { sent } = await searchParams;
   const sql = db();
   const weekStart = upcomingWeekStart();
   const [golfers, defaultRows, weekSchedule, bookings] = await Promise.all([
@@ -29,6 +30,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <header className={styles.header}><div><p className={styles.eyebrow}>Country Club de Montreal</p><h1>Tableau de bord</h1></div><form action={logout}><button className={styles.textButton}>Fermer la session</button></form></header>
     <section className={styles.overview}><div><p className={styles.eyebrow}>Prochaine semaine</p><h2>Du {formatDate(weekStart)}</h2></div><div className={styles.totals}>{dates.map((date) => <div key={date}><strong>{totals[date]}</strong><span>{formatDate(date)}</span></div>)}</div></section>
     <section className={styles.send}><div><p className={styles.eyebrow}>Envoi hebdomadaire</p><h2>Envoyer les invitations</h2><p>Les invitations non envoyees pour la prochaine semaine seront transmises immediatement. Les envois deja effectues ne seront pas repetes.</p></div><form action={sendInvitationsNow}><button>Envoyer maintenant</button></form></section>
+    {sent !== undefined && <p className={styles.success}>{sent} invitation{sent === "1" ? "" : "s"} traitee{sent === "1" ? "" : "s"}. Verifiez Resend pour confirmer la livraison.</p>}
     <section className={styles.grid}>
       <article className={styles.card}><h2>Ajouter un golfeur</h2><form action={addGolfer} className={styles.form}><input name="firstName" placeholder="Prenom" required /><input name="lastName" placeholder="Nom" required /><input name="email" type="email" placeholder="Courriel" required /><button>Ajouter</button></form></article>
       <article className={styles.card}><h2>Jours par defaut</h2><p>Ces jours seront proposes dans les prochaines invitations.</p><form action={saveDefaultSchedule}><ScheduleFields schedule={defaults} /><button>Enregistrer les jours</button></form></article>
