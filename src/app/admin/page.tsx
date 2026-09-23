@@ -2,7 +2,8 @@ import { isAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { availableDates, dateString, formatDate, upcomingWeekStart, weekdays } from "@/lib/dates";
 import { scheduleFor } from "@/lib/schedules";
-import { addGolfer, editGolfer, login, logout, removeGolfer, resendSelectedInvitations, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow, toggleGolfer } from "./actions";
+import { addGolfer, login, logout, resendSelectedInvitations, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow } from "./actions";
+import { GolferRow } from "./golfer-row";
 import styles from "./admin.module.css";
 
 function ScheduleFields({ schedule }: { schedule: Record<string, boolean> }) {
@@ -17,11 +18,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { sent, resend } = await searchParams;
   const sql = db();
   const weekStart = upcomingWeekStart();
-  const [golfers, defaultRows, weekSchedule, bookings] = await Promise.all([
+  const [golferRows, defaultRows, weekSchedule, bookings] = await Promise.all([
     sql`SELECT id, first_name, last_name, email, active FROM golfers WHERE listed=TRUE ORDER BY active DESC, last_name, first_name`,
     sql`SELECT * FROM schedule_defaults WHERE id = 1`, scheduleFor(weekStart),
     sql`SELECT g.first_name, g.last_name, b.play_date FROM invitations i JOIN golfers g ON g.id=i.golfer_id JOIN booking_dates b ON b.invitation_id=i.id WHERE i.week_start=${weekStart} ORDER BY g.last_name, g.first_name, b.play_date`,
   ]);
+  const golfers = golferRows as unknown as Array<{ id: string; first_name: string; last_name: string; email: string; active: boolean }>;
   const defaultRow = defaultRows[0] as Record<string, boolean>;
   const defaults = { lundi: defaultRow.monday, mardi: defaultRow.tuesday, mercredi: defaultRow.wednesday, jeudi: defaultRow.thursday, vendredi: defaultRow.friday, samedi: defaultRow.saturday, dimanche: defaultRow.sunday };
   const dates = availableDates(weekStart, weekSchedule);
@@ -38,7 +40,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <article className={styles.card}><h2>Jours par défaut</h2><p>Ces jours seront proposés dans les prochaines invitations.</p><form action={saveDefaultSchedule}><ScheduleFields schedule={defaults} /><button>Enregistrer les jours</button></form></article>
       <article className={styles.card}><h2>Exception pour la prochaine semaine</h2><p>Du {formatDate(weekStart)}. Cette configuration remplace les jours par défaut pour cette semaine seulement.</p><form action={saveWeekSchedule}><input type="hidden" name="weekStart" value={weekStart} /><ScheduleFields schedule={weekSchedule} /><button>Enregistrer l&apos;exception</button></form></article>
     </section>
-    <section className={styles.card}><details className={styles.golfersPanel} open><summary><span>Golfeurs</span><span>{golfers.length}</span></summary><p className={styles.statusHelp}><strong>Actif</strong> : reçoit les invitations et les rappels. <strong>Désactivé</strong> : reste dans l&apos;historique, mais ne reçoit plus de courriel. <strong>Supprimé</strong> : retiré de cette liste et des envois, mais conservé dans la base de données.</p><div className={styles.table}>{golfers.map((golfer) => <div className={`${styles.row} ${!golfer.active ? styles.inactiveRow : ""}`} key={golfer.id}><form action={editGolfer} className={styles.golferForm}><input type="hidden" name="id" value={golfer.id} /><input name="firstName" defaultValue={golfer.first_name} aria-label="Prénom" required /><input name="lastName" defaultValue={golfer.last_name} aria-label="Nom" required /><input name="email" type="email" defaultValue={golfer.email} aria-label="Courriel" required /><button className={styles.textButton}>Enregistrer</button></form><div className={styles.golferActions}><form action={toggleGolfer}><input type="hidden" name="id" value={golfer.id} /><input type="hidden" name="active" value={String(!golfer.active)} /><button className={styles.textButton}>{golfer.active ? "Désactiver" : "Réactiver"}</button></form><form action={removeGolfer}><input type="hidden" name="id" value={golfer.id} /><button className={styles.removeButton}>Supprimer</button></form></div></div>)}</div></details></section>
+    <section className={styles.card}><details className={styles.golfersPanel} open><summary><span>Golfeurs ({golfers.length})</span><span className={styles.panelToggle}><span className={styles.closeLabel}>Fermer la section</span><span className={styles.openLabel}>Ouvrir la section</span></span></summary><p className={styles.statusHelp}><strong>Actif</strong> : reçoit les invitations et les rappels. <strong>Désactivé</strong> : reste dans l&apos;historique, mais ne reçoit plus de courriel. <strong>Supprimé</strong> : retiré de cette liste et des envois, mais conservé dans la base de données.</p><div className={styles.table}>{golfers.map((golfer) => <GolferRow key={golfer.id} golfer={golfer} />)}</div></details></section>
     <section className={styles.card}><h2>Réservations de la prochaine semaine</h2><table className={styles.bookingTable}><thead><tr><th>Journée</th><th>Joueurs inscrits</th></tr></thead><tbody>{dates.map((date) => <tr key={date}><th scope="row">{formatDate(date)}<span>{totals[date]} inscrit{totals[date] === 1 ? "" : "s"}</span></th><td>{bookingsByDate[date].length ? <ul>{bookingsByDate[date].map((booking, index) => <li key={`${booking.first_name}-${booking.last_name}-${index}`}>{booking.first_name} {booking.last_name}</li>)}</ul> : <span className={styles.empty}>Aucun joueur inscrit.</span>}</td></tr>)}</tbody></table></section>
   </main>;
 }

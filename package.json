@@ -10,6 +10,9 @@
     "db:push": "psql \"$DATABASE_URL\" -f db/schema.sql"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.3.1",
+    "@fortawesome/free-solid-svg-icons": "^7.3.1",
+    "@fortawesome/react-fontawesome": "^3.5.0",
     "drizzle-orm": "^0.45.3",
     "next": "16.3.6",
     "postgres": "^3.4.9",
