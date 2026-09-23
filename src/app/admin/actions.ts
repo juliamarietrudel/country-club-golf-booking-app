@@ -68,5 +68,5 @@ export async function resendSelectedInvitations(formData: FormData) {
   if (!golferIds.length) throw new Error("Selectionnez au moins un golfeur.");
   const count = await sendWeeklyInvitations(upcomingWeekStart(), golferIds, true);
   revalidatePath("/admin");
-  redirect(`/admin?sent=${count}`);
+  redirect(`/admin?sent=${count}&resend=1`);
 }
