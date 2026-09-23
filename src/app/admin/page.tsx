@@ -1,6 +1,6 @@
 import { isAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { availableDates, formatDate, upcomingWeekStart, weekdays } from "@/lib/dates";
+import { availableDates, dateString, formatDate, upcomingWeekStart, weekdays } from "@/lib/dates";
 import { scheduleFor } from "@/lib/schedules";
 import { addGolfer, editGolfer, login, logout, resendSelectedInvitations, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow, toggleGolfer } from "./actions";
 import styles from "./admin.module.css";
@@ -25,7 +25,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const defaultRow = defaultRows[0] as Record<string, boolean>;
   const defaults = { lundi: defaultRow.monday, mardi: defaultRow.tuesday, mercredi: defaultRow.wednesday, jeudi: defaultRow.thursday, vendredi: defaultRow.friday, samedi: defaultRow.saturday, dimanche: defaultRow.sunday };
   const dates = availableDates(weekStart, weekSchedule);
-  const totals = Object.fromEntries(dates.map((date) => [date, bookings.filter((booking) => booking.play_date === date).length]));
+  const bookingsByDate = Object.fromEntries(dates.map((date) => [date, bookings.filter((booking) => dateString(booking.play_date) === date)]));
+  const totals = Object.fromEntries(dates.map((date) => [date, bookingsByDate[date].length]));
   return <main className={styles.page}>
     <header className={styles.header}><div><p className={styles.eyebrow}>Country Club de Montreal</p><h1>Tableau de bord</h1></div><form action={logout}><button className={styles.textButton}>Fermer la session</button></form></header>
     <section className={styles.overview}><div><p className={styles.eyebrow}>Prochaine semaine</p><h2>Du {formatDate(weekStart)}</h2></div><div className={styles.totals}>{dates.map((date) => <div key={date}><strong>{totals[date]}</strong><span>{formatDate(date)}</span></div>)}</div></section>
@@ -38,6 +39,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <article className={styles.card}><h2>Exception pour la prochaine semaine</h2><p>Du {formatDate(weekStart)}. Cette configuration remplace les jours par defaut pour cette semaine seulement.</p><form action={saveWeekSchedule}><input type="hidden" name="weekStart" value={weekStart} /><ScheduleFields schedule={weekSchedule} /><button>Enregistrer l&apos;exception</button></form></article>
     </section>
     <section className={styles.card}><h2>Golfeurs</h2><div className={styles.table}>{golfers.map((golfer) => <div className={styles.row} key={golfer.id}><form action={editGolfer} className={styles.golferForm}><input type="hidden" name="id" value={golfer.id} /><input name="firstName" defaultValue={golfer.first_name} aria-label="Prenom" required /><input name="lastName" defaultValue={golfer.last_name} aria-label="Nom" required /><input name="email" type="email" defaultValue={golfer.email} aria-label="Courriel" required /><button className={styles.textButton}>Enregistrer</button></form><form action={toggleGolfer}><input type="hidden" name="id" value={golfer.id} /><input type="hidden" name="active" value={String(!golfer.active)} /><button className={styles.textButton}>{golfer.active ? "Desactiver" : "Reactiver"}</button></form></div>)}</div></section>
-    <section className={styles.card}><h2>Reservations de la prochaine semaine</h2>{bookings.length ? <div className={styles.table}>{bookings.map((booking, index) => <div className={styles.row} key={`${booking.first_name}-${booking.play_date}-${index}`}><strong>{booking.first_name} {booking.last_name}</strong><span>{formatDate(booking.play_date)}</span></div>)}</div> : <p>Aucune reservation pour le moment.</p>}</section>
+    <section className={styles.card}><h2>Reservations de la prochaine semaine</h2><table className={styles.bookingTable}><thead><tr><th>Journee</th><th>Joueurs inscrits</th></tr></thead><tbody>{dates.map((date) => <tr key={date}><th scope="row">{formatDate(date)}<span>{totals[date]} inscrit{totals[date] === 1 ? "" : "s"}</span></th><td>{bookingsByDate[date].length ? <ul>{bookingsByDate[date].map((booking, index) => <li key={`${booking.first_name}-${booking.last_name}-${index}`}>{booking.first_name} {booking.last_name}</li>)}</ul> : <span className={styles.empty}>Aucun joueur inscrit.</span>}</td></tr>)}</tbody></table></section>
   </main>;
 }

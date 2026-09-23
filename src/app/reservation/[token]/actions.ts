@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { bookingIsOpen, dateString } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { bookingDatesFor } from "@/lib/jobs";
@@ -19,4 +20,5 @@ export async function saveBooking(formData: FormData) {
     for (const date of selected) await transaction`INSERT INTO booking_dates (invitation_id, play_date) VALUES (${invitation.id}, ${date})`;
   });
   revalidatePath(`/reservation/${token}`);
+  redirect(`/reservation/${token}?confirmation=1`);
 }
