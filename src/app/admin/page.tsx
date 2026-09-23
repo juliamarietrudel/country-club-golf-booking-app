@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { availableDates, formatDate, upcomingWeekStart, weekdays } from "@/lib/dates";
 import { scheduleFor } from "@/lib/schedules";
-import { addGolfer, editGolfer, login, logout, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow, toggleGolfer } from "./actions";
+import { addGolfer, editGolfer, login, logout, resendSelectedInvitations, saveDefaultSchedule, saveWeekSchedule, sendInvitationsNow, toggleGolfer } from "./actions";
 import styles from "./admin.module.css";
 
 function ScheduleFields({ schedule }: { schedule: Record<string, boolean> }) {
@@ -31,6 +31,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <section className={styles.overview}><div><p className={styles.eyebrow}>Prochaine semaine</p><h2>Du {formatDate(weekStart)}</h2></div><div className={styles.totals}>{dates.map((date) => <div key={date}><strong>{totals[date]}</strong><span>{formatDate(date)}</span></div>)}</div></section>
     <section className={styles.send}><div><p className={styles.eyebrow}>Envoi hebdomadaire</p><h2>Envoyer les invitations</h2><p>Les invitations non envoyees pour la prochaine semaine seront transmises immediatement. Les envois deja effectues ne seront pas repetes.</p></div><form action={sendInvitationsNow}><button>Envoyer maintenant</button></form></section>
     {sent !== undefined && <p className={styles.success}>{sent} invitation{sent === "1" ? "" : "s"} traitee{sent === "1" ? "" : "s"}. Verifiez Resend pour confirmer la livraison.</p>}
+    <section className={styles.card}><h2>Renvoyer une invitation</h2><p>Selectionnez les golfeurs qui doivent recevoir une nouvelle copie de l&apos;invitation de la prochaine semaine.</p><form action={resendSelectedInvitations}><div className={styles.resendList}>{golfers.filter((golfer) => golfer.active).map((golfer) => <label key={golfer.id}><input type="checkbox" name="golferIds" value={golfer.id} />{golfer.first_name} {golfer.last_name}<span>{golfer.email}</span></label>)}</div><button>Renvoyer aux golfeurs selectionnes</button></form></section>
     <section className={styles.grid}>
       <article className={styles.card}><h2>Ajouter un golfeur</h2><form action={addGolfer} className={styles.form}><input name="firstName" placeholder="Prenom" required /><input name="lastName" placeholder="Nom" required /><input name="email" type="email" placeholder="Courriel" required /><button>Ajouter</button></form></article>
       <article className={styles.card}><h2>Jours par defaut</h2><p>Ces jours seront proposes dans les prochaines invitations.</p><form action={saveDefaultSchedule}><ScheduleFields schedule={defaults} /><button>Enregistrer les jours</button></form></article>

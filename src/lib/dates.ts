@@ -24,8 +24,12 @@ export function zonedTimeToUtc(date: string, hour: number) {
   return new Date(utc);
 }
 
-export function addDays(date: string, days: number) {
-  const result = new Date(`${date}T12:00:00Z`);
+export function dateString(date: string | Date) {
+  return date instanceof Date ? date.toISOString().slice(0, 10) : date.slice(0, 10);
+}
+
+export function addDays(date: string | Date, days: number) {
+  const result = new Date(`${dateString(date)}T12:00:00Z`);
   result.setUTCDate(result.getUTCDate() + days);
   return result.toISOString().slice(0, 10);
 }
@@ -36,10 +40,10 @@ export function upcomingWeekStart(now = new Date()) {
   return addDays(local, day === 0 ? 1 : 8 - day);
 }
 
-export function cutoffFor(weekStart: string) { return zonedTimeToUtc(addDays(weekStart, -1), 12); }
-export function bookingIsOpen(weekStart: string) { return new Date() < cutoffFor(weekStart); }
-export function formatDate(date: string) { return new Intl.DateTimeFormat("fr-CA", { timeZone: TIME_ZONE, weekday: "long", day: "numeric", month: "long" }).format(new Date(`${date}T12:00:00Z`)); }
-export function dayKey(date: string): Weekday { return weekdays[(new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7]; }
+export function cutoffFor(weekStart: string | Date) { return zonedTimeToUtc(addDays(weekStart, -1), 12); }
+export function bookingIsOpen(weekStart: string | Date) { return new Date() < cutoffFor(weekStart); }
+export function formatDate(date: string | Date) { return new Intl.DateTimeFormat("fr-CA", { timeZone: TIME_ZONE, weekday: "long", day: "numeric", month: "long" }).format(new Date(`${dateString(date)}T12:00:00Z`)); }
+export function dayKey(date: string | Date): Weekday { return weekdays[(new Date(`${dateString(date)}T12:00:00Z`).getUTCDay() + 6) % 7]; }
 export function availableDates(weekStart: string, schedule: Record<Weekday, boolean>) { return weekdays.filter((day) => schedule[day]).map((day) => addDays(weekStart, weekdays.indexOf(day))); }
 export function localHour(now = new Date()) { return Number(new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hour: "2-digit", hourCycle: "h23" }).format(now)); }
 export function localWeekday(now = new Date()) { return new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, weekday: "short" }).format(now); }

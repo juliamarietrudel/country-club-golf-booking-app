@@ -6,9 +6,12 @@ import { scheduleFor } from "@/lib/schedules";
 
 const appUrl = () => process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
 
-export async function sendWeeklyInvitations(weekStart = upcomingWeekStart()) {
+export async function sendWeeklyInvitations(weekStart = upcomingWeekStart(), golferIds?: string[], force = false) {
   const sql = db();
-  const golfers = await sql`SELECT id, first_name, last_name, email FROM golfers WHERE active = TRUE`;
+  const selected = golferIds ? new Set(golferIds) : undefined;
+  const allGolfers = await sql`SELECT id, first_name, last_name, email FROM golfers WHERE active = TRUE`;
+  const golfers = selected ? allGolfers.filter((golfer) => selected.has(golfer.id)) : allGolfers;
+  let sent = 0;
   for (const golfer of golfers) {
     const token = crypto.randomBytes(32).toString("base64url");
     const expiresAt = zonedTimeToUtc(addDays(weekStart, -1), 12);
@@ -16,12 +19,14 @@ export async function sendWeeklyInvitations(weekStart = upcomingWeekStart()) {
     const invitation = invitationRows[0];
     const emailKey = `invitation:${invitation.id}`;
     const alreadySent = await sql`SELECT 1 FROM email_deliveries WHERE email_key=${emailKey}`;
-    if (alreadySent.length) continue;
+    if (alreadySent.length && !force) continue;
     await sendInvitation(golfer.email, golfer.first_name, `${appUrl()}/reservation/${invitation.token}`);
-    await sql`INSERT INTO email_deliveries (email_key, invitation_id, kind) VALUES (${emailKey}, ${invitation.id}, 'invitation') ON CONFLICT DO NOTHING`;
+    const deliveryKey = force ? `${emailKey}:manual:${crypto.randomUUID()}` : emailKey;
+    await sql`INSERT INTO email_deliveries (email_key, invitation_id, kind) VALUES (${deliveryKey}, ${invitation.id}, 'invitation') ON CONFLICT DO NOTHING`;
     await sql`UPDATE invitations SET sent_at=NOW() WHERE id=${invitation.id}`;
+    sent++;
   }
-  return golfers.length;
+  return sent;
 }
 
 export async function sendDueReminders() {
