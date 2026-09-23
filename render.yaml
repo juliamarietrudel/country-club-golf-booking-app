@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: country-club-golf
+    runtime: node
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+  - type: cron
+    name: country-club-golf-jobs
+    runtime: node
+    schedule: "0 * * * *"
+    buildCommand: npm ci
+    startCommand: "curl -fsS -H 'Authorization: Bearer $CRON_SECRET' $NEXT_PUBLIC_APP_URL/api/cron"
+databases:
+  - name: country-club-golf-db
+    plan: basic-256mb

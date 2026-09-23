@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Country Club de Montreal - Golf
 
-## Getting Started
+Application de reservation hebdomadaire pour les golfeurs du Country Club de Montreal.
 
-First, run the development server:
+## Fonctionnalites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Une administration protegee par mot de passe.
+- Gestion des golfeurs actifs et inactifs.
+- Jours de jeu par defaut et exceptions pour une semaine precise.
+- Invitations privees, sans compte golfeur, envoyees chaque vendredi a 8 h.
+- Reservations de plusieurs jours modifiables jusqu'au dimanche a midi.
+- Rappels par courriel a midi la veille de chaque journee choisie.
+- Tous les horaires utilisent le fuseau `America/Toronto`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demarrage local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copiez `.env.example` vers `.env.local` et renseignez les valeurs.
+2. Creez une base PostgreSQL et appliquez le schema avec `npm run db:push`.
+3. Lancez l'application avec `npm run dev`.
+4. Ouvrez `http://localhost:3000/admin` et utilisez `ADMIN_PASSWORD`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Courriel
 
-## Learn More
+Le developpement peut utiliser l'expediteur de test Resend. Avant la mise en production, ajoutez et verifiez un domaine d'envoi dans Resend, puis remplacez `EMAIL_FROM` par une adresse de ce domaine.
 
-To learn more about Next.js, take a look at the following resources:
+## Render
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`render.yaml` declare le service web, PostgreSQL et une tache cron horaire. Dans Render, renseignez les variables de `.env.example` pour les deux services et utilisez l'URL publique finale dans `NEXT_PUBLIC_APP_URL`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+La tache cron s'execute chaque heure; l'application n'envoie des invitations que le vendredi a 8 h et des rappels a midi, selon l'heure de Montreal. Les enregistrements d'envoi empechent les doublons en cas de nouvelle tentative de la tache.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Appliquez `db/schema.sql` a la base Render avant le premier deploiement. Le compte Render doit disposer de l'outil `psql`, ou le fichier peut etre execute dans le tableau de bord PostgreSQL Render.
